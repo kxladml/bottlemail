@@ -219,4 +219,13 @@ export function deleteSession(token: string): void {
   conn.prepare('DELETE FROM sessions WHERE token = ?').run(token);
 }
 
+
+export function getLetterById(id: string): PublicLetter | null {
+  const conn = getDatabase();
+  const row = conn.prepare(
+    "SELECT id, content_type, content_text, drawing_data, paper_style, font_style, created_at FROM letters WHERE id = ? AND is_reported = 0"
+  ).get(id) as PublicLetter | undefined;
+  return row || null;
+}
+
 export default db;

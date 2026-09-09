@@ -1,17 +1,18 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import Header from '@/components/Header';
 import RetroMarquee from '@/components/RetroMarquee';
 import LetterGrid from '@/components/LetterGrid';
 import LetterComposer from '@/components/LetterComposer';
 import AuthModal from '@/components/AuthModal';
 import InboxModal from '@/components/InboxModal';
+import LetterModal from '@/components/LetterModal';
 import Footer from '@/components/Footer';
 import { PublicLetter } from '@/lib/db';
-import { Plus, Mail, Shield, Sparkles } from 'lucide-react';
+import { Plus, Mail } from 'lucide-react';
 
-export default function HomePage() {
+function BottleMailApp() {
   const [letters, setLetters] = useState<PublicLetter[]>([]);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -24,6 +25,7 @@ export default function HomePage() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isInboxOpen, setIsInboxOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [sharedLetter, setSharedLetter] = useState<PublicLetter | null>(null);
 
   // Check auth state
   const checkAuth = useCallback(async () => {
@@ -39,6 +41,23 @@ export default function HomePage() {
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  // Check URL parameter for shared bottle (e.g. ?bottle=uuid)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const bottleId = params.get('bottle');
+    if (bottleId) {
+      fetch(`/api/letters?id=${bottleId}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.letter) {
+            setSharedLetter(data.letter);
+          }
+        })
+        .catch((err) => console.error('Error opening shared bottle:', err));
+    }
+  }, []);
 
   // Fetch letters
   const fetchLetters = useCallback(async (currentOffset = 0, currentFilter = filter, append = false) => {
@@ -67,6 +86,20 @@ export default function HomePage() {
     fetchLetters(0, filter, false);
   }, [fetchLetters, filter]);
 
+  // Handle global Escape key to close modals
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsComposerOpen(false);
+        setIsAuthOpen(false);
+        setIsInboxOpen(false);
+        setSharedLetter(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const handleFilterChange = (newFilter: 'all' | 'text' | 'draw') => {
     setFilter(newFilter);
     setOffset(0);
@@ -79,7 +112,6 @@ export default function HomePage() {
   };
 
   const handleLetterCreated = () => {
-    // Refresh letters
     fetchLetters(0, filter, false);
   };
 
@@ -199,8 +231,31 @@ export default function HomePage() {
         onLogout={handleLogout}
       />
 
+      {/* Shared Letter Modal (opened via URL ?bottle=...) */}
+      {sharedLetter && (
+        <LetterModal
+          letter={sharedLetter}
+          onClose={() => {
+            setSharedLetter(null);
+            if (typeof window !== 'undefined') {
+              const url = new URL(window.location.href);
+              url.searchParams.delete('bottle');
+              window.history.replaceState({}, '', url.toString());
+            }
+          }}
+        />
+      )}
+
       {/* Footer */}
       <Footer />
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center font-mono text-xs">[ Loading bottlemail... ]</div>}>
+      <BottleMailApp />
+    </Suspense>
   );
 }
