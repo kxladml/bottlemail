@@ -1,0 +1,187 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bg-main: #ffffff;
+    --text-main: #000000;
+  }
+
+  body {
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    -webkit-font-smoothing: antialiased;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Retro 2000s scrollbars */
+  ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #f0f0f0;
+    border-left: 1px solid #000;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #ffffff;
+    border: 2px solid #000;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #000000;
+  }
+}
+
+/* Paper styles with authentic subtle lines */
+.paper-style-white {
+  background-color: #ffffff;
+  color: #111111;
+}
+
+.paper-style-manila {
+  background-color: #fbf7ee;
+  color: #1a1a1a;
+  background-image: radial-gradient(#eadbc8 0.75px, transparent 0.75px);
+  background-size: 16px 16px;
+}
+
+.paper-style-ruled {
+  background-color: #f6f9fc;
+  color: #111111;
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent 27px,
+    #d1dbe6 28px
+  );
+  line-height: 28px;
+}
+
+.paper-style-yellow {
+  background-color: #fdfbf0;
+  color: #1a1a1a;
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent 27px,
+    #e9e0c7 28px
+  );
+  line-height: 28px;
+}
+
+.paper-style-grid {
+  background-color: #f8f9fa;
+  color: #111111;
+  background-size: 20px 20px;
+  background-image:
+    linear-gradient(to right, #e2e8f0 1px, transparent 1px),
+    linear-gradient(to bottom, #e2e8f0 1px, transparent 1px);
+}
+
+.paper-style-kraft {
+  background-color: #f3ece1;
+  color: #1a1a1a;
+  background-image: radial-gradient(#dfd4c4 1px, transparent 1px);
+  background-size: 14px 14px;
+}
+
+.paper-style-slate {
+  background-color: #18181b;
+  color: #f4f4f5;
+  background-size: 20px 20px;
+  background-image:
+    linear-gradient(to right, #27272a 1px, transparent 1px),
+    linear-gradient(to bottom, #27272a 1px, transparent 1px);
+}
+
+/* Retro UI button components */
+.btn-retro {
+  border: 1px solid #000000;
+  background-color: #ffffff;
+  color: #000000;
+  box-shadow: 2px 2px 0px #000000;
+  transition: transform 0.05s ease, box-shadow 0.05s ease;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: bold;
+  padding: 6px 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+.btn-retro:hover {
+  background-color: #f0f0f0;
+}
+
+.btn-retro:active {
+  transform: translate(2px, 2px);
+  box-shadow: 0px 0px 0px #000000;
+}
+
+.btn-retro-black {
+  border: 1px solid #000000;
+  background-color: #000000;
+  color: #ffffff;
+  box-shadow: 2px 2px 0px #888888;
+  transition: transform 0.05s ease, box-shadow 0.05s ease;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: bold;
+  padding: 6px 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+.btn-retro-black:hover {
+  background-color: #222222;
+}
+
+.btn-retro-black:active {
+  transform: translate(2px, 2px);
+  box-shadow: 0px 0px 0px #000000;
+}
+
+/* Retro Window Container */
+.window-retro {
+  border: 1px solid #000000;
+  box-shadow: 3px 3px 0px #000000;
+  background: #ffffff;
+}
+
+.window-header {
+  background: #000000;
+  color: #ffffff;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+}
+
+/* Notebook Page Container */
+.notebook-page {
+  border: 1px solid #000000;
+  box-shadow: 3px 3px 0px #000000;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Margin line on the left side of a notebook */
+.notebook-margin-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 36px;
+  width: 1px;
+  background-color: rgba(239, 68, 68, 0.4); /* subtle red notebook line */
+  pointer-events: none;
+}
