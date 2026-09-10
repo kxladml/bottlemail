@@ -42,6 +42,7 @@ export default function Footer() {
           <p className="text-gray-600 leading-relaxed text-[11px]">
             An Unsent Project clone where letters are directed to email addresses instead of first names.
             Senders remain completely anonymous. Recipient emails are encrypted using AES-256-GCM.
+            Vibeslop#67877
           </p>
         </div>
 
