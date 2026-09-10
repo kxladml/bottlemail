@@ -4,6 +4,23 @@ import { hashEmail, generateOtp, normalizeEmail } from '@/lib/crypto';
 import { saveOtp } from '@/lib/db';
 import nodemailer from 'nodemailer';
 
+function parseSender(fromStr: string | undefined): { name: string; email: string } {
+  if (!fromStr) {
+    return { name: 'bottlemail', email: 'letters@tossbottle.online' };
+  }
+  const match = fromStr.match(/^(.*?)\s*<([^>]+)>$/);
+  if (match) {
+    return {
+      name: match[1].trim() || 'bottlemail',
+      email: match[2].trim().toLowerCase(),
+    };
+  }
+  return {
+    name: 'bottlemail',
+    email: fromStr.trim().toLowerCase(),
+  };
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { email } = await request.json();
@@ -41,62 +58,69 @@ export async function POST(request: NextRequest) {
     `;
 
     let emailDispatched = false;
+    let lastError: string | null = null;
+    const sender = parseSender(process.env.EMAIL_FROM);
 
-    // 1. Resend API
-    if (process.env.RESEND_API_KEY) {
+    // 1. Brevo API (preferred)
+    if (process.env.BREVO_API_KEY) {
       try {
-        const fromEmail = process.env.EMAIL_FROM || 'bottlemail <onboarding@resend.dev>';
+        const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'accept': 'application/json',
+            'api-key': process.env.BREVO_API_KEY.trim(),
+          },
+          body: JSON.stringify({
+            sender: { name: sender.name, email: sender.email },
+            to: [{ email: normalized }],
+            subject: emailSubject,
+            htmlContent: emailHtml,
+          }),
+        });
+
+        if (res.ok) {
+          emailDispatched = true;
+        } else {
+          const errData = await res.json().catch(() => null);
+          lastError = errData?.message || `Brevo returned status ${res.status}`;
+          console.error('Brevo error details:', lastError);
+        }
+      } catch (err: any) {
+        lastError = err.message || 'Failed to connect to Brevo';
+        console.error('Brevo fetch error:', err);
+      }
+    }
+
+    // 2. Resend API (fallback if configured)
+    if (!emailDispatched && process.env.RESEND_API_KEY) {
+      try {
         const res = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+            Authorization: `Bearer ${process.env.RESEND_API_KEY.trim()}`,
           },
           body: JSON.stringify({
-            from: fromEmail,
+            from: `${sender.name} <${sender.email}>`,
             to: [normalized],
             subject: emailSubject,
             text: `Your 6-digit bottlemail verification code is: ${otp}\n\nExpires in 10 minutes.`,
             html: emailHtml,
           }),
         });
-        if (res.ok) emailDispatched = true;
-        else console.error('Resend error:', await res.text());
-      } catch (err) {
-        console.error('Resend dispatch error:', err);
-      }
-    }
-
-    // 2. Brevo API (formerly Sendinblue)
-    if (!emailDispatched && process.env.BREVO_API_KEY) {
-      try {
-        const fromEmail = process.env.EMAIL_FROM || 'letters@tossbottle.online';
-        const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'accept': 'application/json',
-            'api-key': process.env.BREVO_API_KEY,
-          },
-          body: JSON.stringify({
-            sender: { name: 'bottlemail', email: fromEmail },
-            to: [{ email: normalized }],
-            subject: emailSubject,
-            htmlContent: emailHtml,
-          }),
-        });
         if (res.ok) {
           emailDispatched = true;
         } else {
-          const errText = await res.text();
-          console.error('Brevo API error response:', errText);
+          const errData = await res.json().catch(() => null);
+          lastError = errData?.message || `Resend returned status ${res.status}`;
         }
-      } catch (err) {
-        console.error('Brevo dispatch error:', err);
+      } catch (err: any) {
+        lastError = err.message || 'Failed to connect to Resend';
       }
     }
 
-    // 3. Hostinger or Custom SMTP (nodemailer)
+    // 3. Hostinger / Custom SMTP (nodemailer)
     if (!emailDispatched && process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
       try {
         const transporter = nodemailer.createTransport({
@@ -110,19 +134,27 @@ export async function POST(request: NextRequest) {
         });
 
         await transporter.sendMail({
-          from: process.env.EMAIL_FROM || `bottlemail <${process.env.SMTP_USER}>`,
+          from: `"${sender.name}" <${sender.email}>`,
           to: normalized,
           subject: emailSubject,
           text: `Your 6-digit bottlemail verification code is: ${otp}\n\nExpires in 10 minutes.`,
           html: emailHtml,
         });
         emailDispatched = true;
-      } catch (err) {
-        console.error('SMTP dispatch error:', err);
+      } catch (err: any) {
+        lastError = err.message || 'Failed to send via SMTP';
       }
     }
 
-    // Security: NEVER return devOtp in production
+    // If an email service was configured but failed, alert the user so it's not silent!
+    const hasConfiguredService = !!(process.env.BREVO_API_KEY || process.env.RESEND_API_KEY || process.env.SMTP_HOST);
+
+    if (hasConfiguredService && !emailDispatched) {
+      return NextResponse.json({
+        error: `Could not send email: ${lastError || 'Service error'}. Please verify your Brevo/Email settings.`,
+      }, { status: 400 });
+    }
+
     const isDevOnly = process.env.NODE_ENV === 'development' && process.env.ENABLE_DEV_OTP === 'true';
 
     return NextResponse.json({
