@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Mail, KeyRound, AlertCircle, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { X, Mail, KeyRound, AlertCircle, ArrowRight } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -15,7 +15,6 @@ export default function AuthModal({ isOpen, onClose, onAuthenticated }: AuthModa
   const [otpCode, setOtpCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [devCode, setDevCode] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -42,11 +41,6 @@ export default function AuthModal({ isOpen, onClose, onAuthenticated }: AuthModa
         setErrorMsg(data.error || 'Failed to send OTP');
         setIsLoading(false);
         return;
-      }
-
-      // Store dev OTP for easy instant testing
-      if (data.devOtp) {
-        setDevCode(data.devOtp);
       }
 
       setStep('otp');
@@ -83,7 +77,6 @@ export default function AuthModal({ isOpen, onClose, onAuthenticated }: AuthModa
         return;
       }
 
-      // Successfully authenticated
       setIsLoading(false);
       onAuthenticated();
       onClose();
@@ -116,7 +109,7 @@ export default function AuthModal({ isOpen, onClose, onAuthenticated }: AuthModa
               Check Your Received Letters
             </h2>
             <p className="text-xs text-gray-600 font-mono mt-1">
-              Enter your email to verify ownership. We use a one-time passcode (OTP) to reveal letters written to you.
+              Enter your email to verify ownership. A 6-digit code will be sent to your inbox.
             </p>
           </div>
 
@@ -138,7 +131,7 @@ export default function AuthModal({ isOpen, onClose, onAuthenticated }: AuthModa
                   />
                 </div>
                 <p className="text-[11px] text-gray-500 font-mono mt-1">
-                  We never send spam or marketing. Your email is checked against the encrypted recipient blind index.
+                  We never send spam or newsletters. Your email is checked against the encrypted recipient index.
                 </p>
               </div>
 
@@ -163,7 +156,7 @@ export default function AuthModal({ isOpen, onClose, onAuthenticated }: AuthModa
                   className="btn-retro-black text-xs disabled:opacity-50 flex items-center gap-1.5"
                 >
                   <Mail size={13} />
-                  {isLoading ? 'Requesting OTP...' : 'Send Verification OTP'}
+                  {isLoading ? 'Sending Code...' : 'Send Verification Code'}
                 </button>
               </div>
             </form>
@@ -195,30 +188,10 @@ export default function AuthModal({ isOpen, onClose, onAuthenticated }: AuthModa
                   placeholder="000000"
                   className="w-full text-center tracking-[0.5em] text-lg font-mono px-3 py-2 border-2 border-black focus:outline-none focus:ring-2 focus:ring-black bg-white font-bold"
                 />
+                <p className="text-[11px] text-gray-500 font-mono mt-1">
+                  Check your inbox (and spam folder) for the 6-digit code.
+                </p>
               </div>
-
-              {/* Dev Helper Toast for Instant Local Testing */}
-              {devCode && (
-                <div className="border border-black bg-yellow-50 p-2.5 text-xs font-mono">
-                  <div className="flex items-center gap-1.5 font-bold text-black mb-1">
-                    <CheckCircle2 size={13} className="text-green-600" />
-                    <span>Dev Verification Code:</span>
-                  </div>
-                  <div className="flex items-center justify-between bg-white border border-black px-2 py-1">
-                    <code className="font-bold text-sm tracking-widest">{devCode}</code>
-                    <button
-                      type="button"
-                      onClick={() => setOtpCode(devCode)}
-                      className="text-[10px] uppercase font-bold underline hover:bg-black hover:text-white px-1"
-                    >
-                      [ Auto-Fill ]
-                    </button>
-                  </div>
-                  <p className="text-[10px] text-gray-500 mt-1">
-                    (In production, delivered via Resend/SMTP to {email})
-                  </p>
-                </div>
-              )}
 
               {errorMsg && (
                 <div className="border border-red-600 bg-red-50 p-2.5 text-xs text-red-700 flex items-center gap-2 font-mono">
