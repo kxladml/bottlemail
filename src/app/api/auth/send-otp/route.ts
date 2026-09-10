@@ -61,6 +61,7 @@ export async function POST(request: NextRequest) {
           }),
         });
         if (res.ok) emailDispatched = true;
+        else console.error('Resend error:', await res.text());
       } catch (err) {
         console.error('Resend dispatch error:', err);
       }
@@ -74,6 +75,7 @@ export async function POST(request: NextRequest) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'accept': 'application/json',
             'api-key': process.env.BREVO_API_KEY,
           },
           body: JSON.stringify({
@@ -83,7 +85,12 @@ export async function POST(request: NextRequest) {
             htmlContent: emailHtml,
           }),
         });
-        if (res.ok) emailDispatched = true;
+        if (res.ok) {
+          emailDispatched = true;
+        } else {
+          const errText = await res.text();
+          console.error('Brevo API error response:', errText);
+        }
       } catch (err) {
         console.error('Brevo dispatch error:', err);
       }
