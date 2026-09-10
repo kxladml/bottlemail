@@ -5,17 +5,15 @@ import { hashEmail, encryptEmail, normalizeEmail } from '@/lib/crypto';
 import { checkContentSafety } from '@/lib/safety';
 import crypto from 'crypto';
 
-// Max character limit equivalent to a single physical notebook page
 const MAX_NOTEBOOK_CHARS = 500;
 
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
 
-    // If requesting a specific bottle by ID (e.g. shared link)
     const letterId = searchParams.get('id');
     if (letterId) {
-      const letter = getLetterById(letterId);
+      const letter = await getLetterById(letterId);
       if (!letter) {
         return NextResponse.json({ error: 'Bottle not found or was swallowed by the sea' }, { status: 404 });
       }
@@ -26,8 +24,8 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '30', 10), 100);
     const offset = Math.max(parseInt(searchParams.get('offset') || '0', 10), 0);
 
-    const letters = getPublicLetters(limit, offset, filter);
-    const totalCount = getTotalLetterCount();
+    const letters = await getPublicLetters(limit, offset, filter);
+    const totalCount = await getTotalLetterCount();
 
     return NextResponse.json({
       letters,
@@ -47,7 +45,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { recipientEmail, contentType, contentText, drawingData, paperStyle, fontStyle } = body;
 
-    // 1. Validate recipient email
     if (!recipientEmail || typeof recipientEmail !== 'string') {
       return NextResponse.json({ error: 'Recipient email is required' }, { status: 400 });
     }
@@ -58,7 +55,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Please enter a valid recipient email address' }, { status: 400 });
     }
 
-    // 2. Validate content type
     if (contentType !== 'text' && contentType !== 'draw') {
       return NextResponse.json({ error: 'Invalid content type' }, { status: 400 });
     }
@@ -77,7 +73,6 @@ export async function POST(request: NextRequest) {
         }, { status: 400 });
       }
 
-      // Safety & Censorship Check
       const safety = checkContentSafety(contentText);
       if (!safety.isSafe) {
         return NextResponse.json({
@@ -89,12 +84,10 @@ export async function POST(request: NextRequest) {
 
       sanitizedText = safety.censoredText || contentText.trim();
     } else {
-      // Drawing letter
       if (!drawingData || typeof drawingData !== 'string' || !drawingData.startsWith('data:image/')) {
         return NextResponse.json({ error: 'Please draw something on the page before sending' }, { status: 400 });
       }
 
-      // Limit drawing data size to prevent giant payloads (max ~350KB)
       if (drawingData.length > 350000) {
         return NextResponse.json({ error: 'Drawing data exceeds page size limits' }, { status: 400 });
       }
@@ -102,14 +95,13 @@ export async function POST(request: NextRequest) {
       sanitizedDrawing = drawingData;
     }
 
-    // 3. Encrypt and Hash Recipient Email
     const recipientHash = hashEmail(normalizedRecipient);
     const recipientEncrypted = encryptEmail(normalizedRecipient);
 
     const letterId = crypto.randomUUID();
     const now = Date.now();
 
-    insertLetter({
+    await insertLetter({
       id: letterId,
       recipient_hash: recipientHash,
       recipient_encrypted: recipientEncrypted,

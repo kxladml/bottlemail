@@ -20,14 +20,12 @@ export async function POST(request: NextRequest) {
     const emailHash = hashEmail(normalized);
     const otp = generateOtp();
 
-    // Save to database with 10-minute expiry
-    saveOtp(emailHash, otp);
+    await saveOtp(emailHash, otp);
 
-    // If Resend API Key is provided, send real email
     if (process.env.RESEND_API_KEY) {
       try {
         const fromEmail = process.env.EMAIL_FROM || 'bottlemail <onboarding@resend.dev>';
-        const emailRes = await fetch('https://api.resend.com/emails', {
+        await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -55,11 +53,6 @@ export async function POST(request: NextRequest) {
             `,
           }),
         });
-
-        if (!emailRes.ok) {
-          const errData = await emailRes.text();
-          console.error('Resend API error:', errData);
-        }
       } catch (mailErr) {
         console.error('Error dispatching via Resend:', mailErr);
       }
@@ -72,7 +65,6 @@ export async function POST(request: NextRequest) {
     console.log(`Expires in: 10 minutes`);
     console.log(`========================================\n`);
 
-    // In local development or when no Resend key is set, expose devOtp for instant testing
     const showDevOtp = !process.env.RESEND_API_KEY || process.env.NODE_ENV !== 'production';
 
     return NextResponse.json({

@@ -9,12 +9,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Please log in to view your inbox' }, { status: 401 });
     }
 
-    const session = getSession(sessionCookie.value);
+    const session = await getSession(sessionCookie.value);
     if (!session) {
       return NextResponse.json({ error: 'Session expired. Please log in again.' }, { status: 401 });
     }
 
-    const letters = getInboxLetters(session.emailHash);
+    const letters = await getInboxLetters(session.emailHash);
 
     return NextResponse.json({
       letters,

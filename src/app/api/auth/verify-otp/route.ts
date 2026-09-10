@@ -14,27 +14,25 @@ export async function POST(request: NextRequest) {
     const normalized = normalizeEmail(email);
     const emailHash = hashEmail(normalized);
 
-    const verification = verifyOtp(emailHash, code);
+    const verification = await verifyOtp(emailHash, code);
     if (!verification.success) {
       return NextResponse.json({ error: verification.reason || 'Invalid code' }, { status: 401 });
     }
 
-    // Create session token
     const token = generateSessionToken();
-    createSession(token, emailHash);
+    await createSession(token, emailHash);
 
     const response = NextResponse.json({
       success: true,
       message: 'Authentication successful',
     });
 
-    // Set secure HTTP-only cookie
     response.cookies.set('bottlemail_session', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 7 * 24 * 60 * 60, // 7 days
+      maxAge: 7 * 24 * 60 * 60,
     });
 
     return response;
