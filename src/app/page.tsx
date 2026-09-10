@@ -159,7 +159,6 @@ function BottleMailApp() {
             <p className="text-xs sm:text-sm font-mono text-gray-700 leading-relaxed">
               <strong>bottlemail</strong> is an anonymous sanctuary inspired by The Unsent Project.
               Instead of names, letters are addressed to an <strong>email address</strong>.
-              The email is encrypted with AES-256 and never made public.
               Letters drift openly at sea for anyone to read.
               If the recipient ever logs in with their email, all their bottles will be waiting.
             </p>
